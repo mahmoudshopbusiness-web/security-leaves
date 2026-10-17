@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>منظومة إدارة إجازات الأمن والحراسة - الإصدار الاحترافي</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    body { font-family: 'Cairo', sans-serif; background-color: #f1f5f9; }
+    .navy-gradient { background: linear-gradient(135deg, #0A1628 0%, #1B4FD8 100%); }
+    .card-shadow { box-shadow: 0 4px 20px -2px rgba(10, 22, 40, 0.08); }
+    .tab-active { background-color: #1B4FD8; color: #ffffff; font-weight: 800; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #e2e8f0; }
+    ::-webkit-scrollbar-thumb { background: #1B4FD8; border-radius: 3px; }
+  </style>
+</head>
+<body class="text-slate-800 min-h-screen pb-12">
+
+  <div id="toastBox" class="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:w-96 z-50 hidden transition-all duration-300">
+    <div class="bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-white/15 flex items-center justify-between gap-3">
+      <span id="toastText" class="text-xs font-bold leading-relaxed"></span>
+      <button onclick="hideToast()" class="text-slate-400 hover:text-white text-sm font-black">✕</button>
+    </div>
+  </div>
+
+  <header class="navy-gradient text-white shadow-xl sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center text-2xl border border-white/20 shadow-inner">
+          🛡️
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base md:text-xl font-black tracking-wide">منظومة إجازات الأمن والحراسة - مشروع دي باي</h1>
+            <span id="saveStatusBadge" class="bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 text-[10px] font-extrabold px-2 py-0.5 rounded-full">💾 محفوظ دائماً</span>
+          </div>
+          <p class="text-[11px] text-blue-200 font-semibold">المشرف المسؤول: العميد جمعة • إدارة الأرصدة والطلبات</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-between sm:justify-end">
+        <div class="bg-slate-900/60 p-1 rounded-xl border border-white/15 flex flex-1 sm:flex-initial">
+          <button id="mainTabEmp" onclick="switchRole('employee')" class="flex-1 sm:flex-initial px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm transition tab-active">
+            👮‍♂️ بوابة الأفراد
+          </button>
+          <button id="mainTabAcc" onclick="switchRole('accountant')" class="flex-1 sm:flex-initial px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm transition text-slate-200 hover:text-white">
+            💼 لوحة المحاسب 🔒
+          </button>
+        </div>
+
+        <div class="flex gap-1.5">
+          <button onclick="downloadAppFile('txt')" title="حفظ كملف نصي" class="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-2.5 py-2 rounded-xl border border-white/20 transition flex items-center gap-1">
+            <span>📄</span> TXT
+          </button>
+          <button onclick="downloadAppFile('html')" title="تنزيل الملف على الهاتف بالبيانات المحفوظة" class="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold px-3 py-2 rounded-xl shadow transition flex items-center gap-1">
+            <span>⬇️</span> تنزيل الملف
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-3 md:px-4 mt-5">
+
+    <!-- ========================================== -->
+    <!-- 1. بوابة فرد الأمن (الموظف) -->
+    <!-- ========================================== -->
+    <section id="employeeView" class="space-y-5">
+
+      <div class="bg-white rounded-2xl p-4 md:p-6 card-shadow border border-slate-200">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4 mb-5">
+          <div>
+            <span class="bg-blue-100 text-blue-800 text-xs font-extrabold px-2.5 py-1 rounded-md">الخطوة الأولى</span>
+            <h2 class="text-base md:text-lg font-extrabold text-slate-900 mt-1">أدخل رقم المسلسل (الكود من 1 إلى 63) أو اختر اسمك</h2>
+            <p class="text-xs text-slate-500 mt-0.5">أمثلة سريعة من الكشف: 
+              <button type="button" onclick="lookupEmployee('1')" class="text-blue-700 font-black underline mx-1">1</button>
+              <button type="button" onclick="lookupEmployee('5')" class="text-blue-700 font-black underline mx-1">5</button>
+              <button type="button" onclick="lookupEmployee('18')" class="text-blue-700 font-black underline mx-1">18</button>
+              <button type="button" onclick="lookupEmployee('36')" class="text-blue-700 font-black underline mx-1">36</button>
+            </p>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            <input type="text" id="empSearchCode" oninput="lookupEmployee(this.value)" placeholder="اكتب رقمك بالكشف (1 - 63)" class="w-full sm:w-52 bg-slate-50 border-2 border-blue-500 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 outline-none">
+            <select id="empQuickSelect" onchange="lookupEmployee(this.value)" class="bg-slate-100 border border-slate-300 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 outline-none">
+              <option value="">-- أو اختر الاسم من الكشف (63 فرد) --</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- بطاقة بيانات الموظف والرصيد -->
+        <div id="empProfileBanner" class="hidden bg-gradient-to-l from-slate-900 to-blue-950 text-white rounded-2xl p-4 md:p-5 mb-6 shadow-md">
+          <div class="grid grid-cols-3 md:grid-cols-4 gap-3 items-center">
+            <div class="col-span-3 md:col-span-1">
+              <p class="text-xs text-blue-300 font-semibold">اسم فرد الأمن</p>
+              <h3 id="cardEmpName" class="text-base md:text-lg font-black">--</h3>
+              <div class="flex items-center gap-2 mt-1">
+                <span id="cardEmpShift" class="bg-white/10 text-xs px-2.5 py-0.5 rounded-full">وردية ليلية</span>
+              </div>
+            </div>
+            <div class="bg-white/10 rounded-xl p-2.5 text-center border border-white/10">
+              <p class="text-[11px] text-slate-300">الرصيد السنوي</p>
+              <p id="cardTotalBalance" class="text-base md:text-xl font-black text-white">21</p>
+            </div>
+            <div class="bg-white/10 rounded-xl p-2.5 text-center border border-white/10">
+              <p class="text-[11px] text-slate-300">المستنفد</p>
+              <p id="cardUsedBalance" class="text-base md:text-xl font-black text-amber-400">0</p>
+            </div>
+            <div class="bg-emerald-500/20 rounded-xl p-2.5 text-center border border-emerald-400/40">
+              <p class="text-[11px] text-emerald-200 font-bold">المتبقي لك</p>
+              <p id="cardRemBalance" class="text-lg md:text-2xl font-black text-emerald-300">21</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- نموذج تقديم الإجازة بدون مواقع -->
+        <form id="leaveForm" onsubmit="handleLeaveSubmit(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">اسم الموظف *</label>
+            <input type="text" id="formEmpName" required placeholder="يُملأ تلقائياً بالكود أو اكتبه يدوياً" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm font-bold focus:ring-2 focus:ring-blue-600 outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">نوع الإجازة *</label>
+            <select id="formLeaveType" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm font-bold focus:ring-2 focus:ring-blue-600 outline-none">
+              <option value="اعتيادية">إجازة اعتيادية (تُخصم من الرصيد)</option>
+              <option value="عارضة">إجازة عارضة / طارئة (تُخصم من الرصيد)</option>
+              <option value="بدل راحة">بدل راحة / تطبيق وردية (لا تُخصم)</option>
+              <option value="مرضية">إجازة مرضية</option>
+              <option value="بدون مرتب">إجازة بدون مرتب</option>
+            </select>
+          </div>
+
+          <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">من تاريخ (أول يوم إجازة) *</label>
+              <input type="date" id="formStartDate" required onchange="calculateDaysAndCheck()" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm font-bold focus:ring-2 focus:ring-blue-600 outline-none">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">إلى تاريخ (آخر يوم إجازة) *</label>
+              <input type="date" id="formEndDate" required onchange="calculateDaysAndCheck()" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm font-bold focus:ring-2 focus:ring-blue-600 outline-none">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">عدد الأيام (الحد الأقصى 5 أو 7 للصعيد)</label>
+              <input type="text" id="formDaysCount" readonly value="1 يوم" class="w-full bg-blue-50 border border-blue-200 text-blue-900 rounded-xl p-2.5 text-sm font-black text-center">
+            </div>
+          </div>
+
+          <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+            <div>
+              <label class="block text-xs font-extrabold text-slate-800 mb-1">هل أنت من محافظات الصعيد؟ (للحصول على 7 أيام حد أقصى)</label>
+              <select id="formIsUpperEgypt" onchange="calculateDaysAndCheck()" class="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-bold outline-none">
+                <option value="no">لا (الحد الأقصى 5 أيام)</option>
+                <option value="yes">نعم، من الصعيد (الحد الأقصى 7 أيام)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">رقم تليفونك (للتواصل واتساب) + ملاحظات</label>
+              <div class="flex gap-2">
+                <input type="tel" id="formPhone" placeholder="رقم الموبايل" class="w-1/3 bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-semibold outline-none">
+                <input type="text" id="formNotes" placeholder="سبب الإجازة..." class="w-2/3 bg-white border border-slate-300 rounded-xl p-2.5 text-xs outline-none">
+              </div>
+            </div>
+          </div>
+
+          <!-- تنبيه تخطي الحد الأقصى -->
+          <div id="liveConflictAlert" class="hidden md:col-span-2 bg-rose-50 border-r-4 border-rose-600 p-3.5 rounded-xl text-xs font-bold text-rose-900 flex items-center gap-2">
+            <span class="text-lg">⚠️</span>
+            <span id="liveConflictText">تنبيه: تم تجاوز الحد الأقصى للأيام المسموح بها!</span>
+          </div>
+
+          <div class="md:col-span-2 pt-2">
+            <button type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-black py-3.5 px-6 rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-sm">
+              <span>🚀</span> تسجيل وإرسال الطلب للمحاسب
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 md:p-6 card-shadow border border-slate-200">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+            <span>📋</span> سجل طلباتك وحالة الاعتماد
+          </h3>
+          <span class="text-xs text-slate-500 font-semibold">محفوظ تلقائياً</span>
+        </div>
+
+        <div id="empRequestsContainer" class="space-y-3"></div>
+      </div>
+
+    </section>
+
+
+    <!-- ========================================== -->
+    <!-- 2. لوحة المحاسب والإدارة -->
+    <!-- ========================================== -->
+    <section id="accountantView" class="hidden space-y-6">
+
+      <!-- شاشة الرقم السري للمحاسب بدون أي تلميحات أو رسائل خطأ كاشفة -->
+      <div id="accLoginBox" class="bg-white rounded-2xl p-6 md:p-8 max-w-md mx-auto card-shadow border border-slate-200 text-center my-6">
+        <div class="w-16 h-16 bg-blue-50 text-blue-700 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3 border border-blue-200">
+          🔐
+        </div>
+        <h2 class="text-xl font-black text-slate-900">بوابة المحاسب ومدير الحركة</h2>
+        <p class="text-xs text-slate-500 mt-1 mb-5">منطقة خاصة بالإدارة فقط</p>
+        
+        <form onsubmit="verifyAccountantPin(event)" class="space-y-3">
+          <input type="password" id="accPinInput" value="" placeholder="••••••••" autocomplete="off" class="w-full text-center tracking-widest text-2xl font-black bg-slate-50 border-2 border-slate-300 rounded-xl p-3 focus:border-blue-600 outline-none">
+          <button type="submit" class="w-full navy-gradient text-white font-black py-3 rounded-xl shadow-md hover:opacity-95 transition">
+            فتح لوحة التحكم
+          </button>
+        </form>
+      </div>
+
+      <!-- لوحة تحكم المحاسب الكاملة -->
+      <div id="accDashboard" class="hidden space-y-5">
+
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div class="bg-white p-4 rounded-2xl border border-slate-200 card-shadow">
+            <span class="text-xs font-bold text-slate-400">إجمالي الطلبات</span>
+            <p id="statAll" class="text-2xl font-black text-slate-900 mt-1">0</p>
+          </div>
+          <div class="bg-amber-50 p-4 rounded-2xl border border-amber-200 card-shadow">
+            <span class="text-xs font-bold text-amber-700">منتظر قرارك ⏳</span>
+            <p id="statPending" class="text-2xl font-black text-amber-800 mt-1">0</p>
+          </div>
+          <div class="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 card-shadow">
+            <span class="text-xs font-bold text-emerald-700">تمت الموافقة ✅</span>
+            <p id="statApproved" class="text-2xl font-black text-emerald-800 mt-1">0</p>
+          </div>
+          <div class="bg-rose-50 p-4 rounded-2xl border border-rose-200 card-shadow">
+            <span class="text-xs font-bold text-rose-700">مرفوض ❌</span>
+            <p id="statRejected" class="text-2xl font-black text-rose-800 mt-1">0</p>
+          </div>
+          <div class="col-span-2 md:col-span-1 bg-slate-900 text-white p-4 rounded-2xl card-shadow">
+            <span class="text-xs font-bold text-blue-300">في إجازة اليوم 📅</span>
+            <p id="statActiveToday" class="text-2xl font-black text-white mt-1">0</p>
+          </div>
+        </div>
+
+        <div class="bg-white p-2.5 rounded-2xl border border-slate-200 card-shadow flex flex-wrap justify-between items-center gap-2">
+          <div class="flex flex-wrap gap-1.5">
+            <button onclick="switchAccSubTab('requests')" id="subTabReq" class="px-3.5 py-2 rounded-xl text-xs font-extrabold bg-blue-600 text-white transition">
+              📥 طلبات الإجازات
+            </button>
+            <button onclick="switchAccSubTab('employees')" id="subTabEmp" class="px-3.5 py-2 rounded-xl text-xs font-extrabold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+              👥 الأفراد والأرصدة (63)
+            </button>
+            <button onclick="switchAccSubTab('settings')" id="subTabSet" class="px-3.5 py-2 rounded-xl text-xs font-extrabold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+              💾 النسخ الاحتياطي
+            </button>
+          </div>
+
+          <div class="flex flex-wrap gap-1.5">
+            <button onclick="openSmartImportModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-sm transition flex items-center gap-1">
+              <span>📲</span> استيراد كود واتساب
+            </button>
+            <button onclick="exportRealExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-sm transition flex items-center gap-1">
+              <span>📊</span> تحميل شيت Excel
+            </button>
+            <button onclick="lockAccountantPanel()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-sm transition flex items-center gap-1">
+              <span>🔒</span> قفل اللوحة
+            </button>
+          </div>
+        </div>
+
+        <!-- التبويب الفرعي 1: إدارة الطلبات -->
+        <div id="accSubRequests" class="space-y-4">
+          <div class="bg-white p-3.5 rounded-2xl border border-slate-200 flex flex-wrap gap-2 items-center justify-between">
+            <div class="flex flex-wrap gap-2 items-center w-full md:w-auto">
+              <input type="text" id="filterSearch" oninput="renderAccRequests()" placeholder="بحث بالاسم أو الكود..." class="flex-1 md:flex-initial bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold outline-none">
+
+              <select id="filterStatus" onchange="renderAccRequests()" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold outline-none">
+                <option value="ALL">كل الحالات</option>
+                <option value="معلق">⏳ قيد الانتظار</option>
+                <option value="مقبول">✅ المقبول</option>
+                <option value="مرفوض">❌ المرفوض</option>
+              </select>
+            </div>
+            <span class="text-[11px] text-slate-500 font-bold">الحد الأقصى للإجازة: 5 أيام عادي | 7 أيام للصعيد</span>
+          </div>
+
+          <div id="accRequestsList" class="space-y-3"></div>
+        </div>
+
+        <!-- التبويب الفرعي 2: سجل الموظفين والأرصدة بدون مواقع -->
+        <div id="accSubEmployees" class="hidden space-y-4">
+          <div class="bg-white p-4 md:p-5 rounded-2xl border border-slate-200 card-shadow">
+            <h3 class="text-sm font-black text-slate-900 mb-3">➕ إضافة فرد أمن جديد للنظام</h3>
+            <form onsubmit="addNewEmployee(event)" class="grid grid-cols-2 md:grid-cols-5 gap-2.5">
+              <input type="text" id="newEmpCode" required placeholder="الكود (مثال: 64)" class="bg-slate-50 border border-slate-300 rounded-xl p-2 text-xs font-bold">
+              <input type="text" id="newEmpName" required placeholder="الاسم ثلاثي *" class="bg-slate-50 border border-slate-300 rounded-xl p-2 text-xs font-bold col-span-2">
+              <input type="tel" id="newEmpPhone" placeholder="رقم الواتساب" class="bg-slate-50 border border-slate-300 rounded-xl p-2 text-xs font-bold">
+              <div class="flex gap-1 col-span-2 md:col-span-1">
+                <input type="number" id="newEmpBalance" value="21" required title="الرصيد السنوي" class="w-16 bg-slate-50 border border-slate-300 rounded-xl p-2 text-xs font-bold text-center">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs px-3">حفظ</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 card-shadow overflow-x-auto">
+            <table class="w-full text-right text-xs">
+              <thead class="bg-slate-900 text-white">
+                <tr>
+                  <th class="p-3">الكود</th>
+                  <th class="p-3">اسم فرد الأمن</th>
+                  <th class="p-3 text-center">الرصيد السنوي</th>
+                  <th class="p-3 text-center">المستنفد</th>
+                  <th class="p-3 text-center">المتبقي</th>
+                  <th class="p-3 text-center">حذف</th>
+                </tr>
+              </thead>
+              <tbody id="employeesTableBody" class="divide-y divide-slate-200 font-semibold"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- التبويب الفرعي 3: النسخ الاحتياطي -->
+        <div id="accSubSettings" class="hidden">
+          <div class="bg-white p-5 rounded-2xl border border-slate-200 card-shadow space-y-4">
+            <h3 class="text-sm font-black text-slate-900">💾 الحفظ الدائم والنسخ الاحتياطي للبيانات</h3>
+            <p class="text-xs text-slate-600 font-semibold">جميع البيانات والأرصدة والطلبات تُحفظ تلقائياً بشكل دائم، ويمكنك أيضاً تنزيل نسخة احتياطية أو استعادتها في أي وقت:</p>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="exportBackupTxt()" class="bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl">📥 تحميل نسخة البيانات (.txt)</button>
+              <label class="bg-blue-50 text-blue-800 border border-blue-200 text-xs font-bold px-4 py-2.5 rounded-xl cursor-pointer">
+                📤 استعادة بيانات من ملف
+                <input type="file" accept=".txt,.json" onchange="importBackupTxt(event)" class="hidden">
+              </label>
+              <button onclick="resetDemoData()" class="bg-rose-50 text-rose-700 text-xs font-bold px-4 py-2.5 rounded-xl">🔄 استعادة الكشف الأصلي</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- نافذة تصريح الإجازة الرسمي -->
+  <div id="permitModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 space-y-4">
+      <div id="printablePermit" class="bg-white border-2 border-slate-900 rounded-xl p-5 relative overflow-hidden">
+        <div class="navy-gradient text-white p-3 rounded-lg flex justify-between items-center mb-4">
+          <div>
+            <h4 class="font-black text-sm">تصريح إجازة معتمد 🛡️</h4>
+            <p class="text-[10px] text-blue-200">مشروع دي باي • إشراف العميد جمعة</p>
+          </div>
+          <span id="permitIdBadge" class="text-xs bg-white/20 px-2 py-0.5 rounded font-mono">#1001</span>
+        </div>
+        <div class="space-y-2 text-xs">
+          <div class="flex justify-between border-b pb-1.5"><span class="text-slate-500">اسم الفرد:</span><b id="pName" class="text-slate-900"></b></div>
+          <div class="flex justify-between border-b pb-1.5"><span class="text-slate-500">رقم الكود بالكشف:</span><b id="pCode" class="text-blue-800"></b></div>
+          <div class="flex justify-between border-b pb-1.5"><span class="text-slate-500">نوع الإجازة:</span><b id="pType"></b></div>
+          <div class="flex justify-between border-b pb-1.5"><span class="text-slate-500">المدة المعتمدة:</span><b id="pDates" class="text-emerald-700"></b></div>
+          <div class="flex justify-between pt-1"><span class="text-slate-500">قرار المحاسب:</span><b id="pNote" class="text-slate-800"></b></div>
+        </div>
+        <div class="mt-4 pt-3 border-t-2 border-dashed border-slate-300 flex justify-between items-center">
+          <span class="text-[11px] text-slate-400">الحد الأقصى (5 أيام / 7 للصعيد)</span>
+          <span class="border-2 border-emerald-600 text-emerald-700 font-black text-xs px-3 py-1 rounded-lg -rotate-6">
+            ✅ معتمد ومقبول
+          </span>
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <button onclick="downloadPermitImage()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs">📸 حفظ التصريح كصورة</button>
+        <button onclick="document.getElementById('permitModal').classList.add('hidden')" class="bg-slate-200 text-slate-800 font-bold px-4 py-2.5 rounded-xl text-xs">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- نافذة استيراد كود طلب من واتساب -->
+  <div id="importModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 space-y-4">
+      <h3 class="font-black text-base text-slate-900">📲 إضافة طلب وارد من واتساب</h3>
+      <textarea id="importCodeInput" rows="4" placeholder="الصق رسالة الموظف أو الكود هنا..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-mono outline-none"></textarea>
+      <div class="flex gap-2">
+        <button onclick="processSmartImport()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs">إضافة للجدول</button>
+        <button onclick="document.getElementById('importModal').classList.add('hidden')" class="bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <script id="initialDataScript">
+    const DEFAULT_EMPLOYEES = [
+      { code: "1", name: "محمود علي محمد محمود", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "2", name: "معاذ علواني محجوب", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "3", name: "هشام صبحي عبد الحميد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "4", name: "السعيد الشبراوي محمد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "5", name: "محمد اشرف محمد طاهر", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "6", name: "محمد دسوقي حسن", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "7", name: "ابراهيم محمد سعد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "8", name: "سيد مجدي محمد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "9", name: "عبد الرحمان علي السيد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "10", name: "حمادة عبدالله", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "11", name: "محمد سمير السعيد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "12", name: "يوسف خالد موسى", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "13", name: "محمد السيد محمد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "14", name: "عمر خالد موسى", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "15", name: "احمد اشرف صلاح", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "16", name: "محمد ممدوح محمد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "17", name: "احمد هاني ابو ليلة", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "18", name: "محمود أحمد عبد المجيد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "19", name: "محمود سعيد عبد المحسن", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "20", name: "محمد جمال سعد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "21", name: "محمود عبد الجليل محمد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "22", name: "كرم الدين محمد احمد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "23", name: "ايمن السيد عريضة", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "24", name: "محمد ناصر علي", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "25", name: "يوسف حمادة صلاح", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "26", name: "السيد علي السيد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "27", name: "فارس مصطفى محمد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "28", name: "فارس حمادة فتحي", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "29", name: "سامح منير رزق الله", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "30", name: "عبد الرحمن راوي عبد الرحمن", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "31", name: "احمد مدحت جلال", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "32", name: "مصطفى يوسف محمود", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "33", name: "احمد ممدوح محمد (البوابة)", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "34", name: "محمود محمد معروف", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "35", name: "محمد شعبان مصطفى", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "36", name: "حسام الدين ناصر", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "37", name: "بدر الدين محمد فرغلي", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "38", name: "كرم جابر عبد الله", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "39", name: "جمال ناصر طه", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "40", name: "همام صابر همام", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "41", name: "طارق مدحت صلاح", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "42", name: "محمد أشرف محمود", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "43", name: "محمود محمد السيد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "44", name: "محمد مختار عبد الجواد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "45", name: "ابراهيم محمد امبابي", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "46", name: "محمد ابراهيم رزق", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "47", name: "احمد رمضان احمد منتصر", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "48", name: "عبد الرحمن احمد درويش", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "49", name: "محمود احمد محمد اسماعيل", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "50", name: "ابو الوفا السيد حسن", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "51", name: "عاصم لبيب محمود", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "52", name: "عبد المالك احمد حسين", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "53", name: "احمد حسن محمد حسن", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "54", name: "احمد عبد الراضي ابو ضيف ابو", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "55", name: "عبد الصمد علي ابو الوفا", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "56", name: "محمد وجيه سليم محمد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "57", name: "عبد الله حنفي محمد إسماعيل", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "58", name: "حمادة ناصر منصور حامد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "59", name: "محمد محمود عبد العزيز محمد", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "60", name: "عبد العاطي السيد عبد العاطي", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "61", name: "طارق زينهم جلال محمود", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "62", name: "راضي طارق محسن حسين", shift: "وردية ليلية", totalBalance: 21 },
+      { code: "63", name: "اسلام محمود نعيم عابدين", shift: "وردية ليلية", totalBalance: 21 }
+    ];
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    const DEFAULT_REQUESTS = [
+      { id: 1001, empCode: "7", name: "ابراهيم محمد سعد", type: "اعتيادية", startDate: todayStr, endDate: todayStr, days: 1, isUpper: "no", status: "مقبول", accNote: "مسجل كشف", createdAt: todayStr },
+      { id: 1002, empCode: "13", name: "محمد السيد محمد", type: "اعتيادية", startDate: todayStr, endDate: todayStr, days: 1, isUpper: "no", status: "مقبول", accNote: "مسجل كشف", createdAt: todayStr },
+      { id: 1003, empCode: "25", name: "يوسف حمادة صلاح", type: "اعتيادية", startDate: todayStr, endDate: todayStr, days: 1, isUpper: "no", status: "مقبول", accNote: "مسجل كشف", createdAt: todayStr },
+      { id: 1004, empCode: "37", name: "بدر الدين محمد فرغلي", type: "اعتيادية", startDate: todayStr, endDate: todayStr, days: 1, isUpper: "no", status: "مقبول", accNote: "مسجل كشف", createdAt: todayStr }
+    ];
+
+    window.employees = [...DEFAULT_EMPLOYEES];
+    window.requests = [...DEFAULT_REQUESTS];
+  </script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    let db = null;
+    let auth = null;
+    let currentUser = null;
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'security-dbay-leaves-app';
+
+    // حفظ محلي عبر IndexedDB لضمان عمل الملف حتى بعد تنزيله على الهاتف بدون إنترنت
+    function openLocalIDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open('DBaySecurityLeavesDB', 1);
+        req.onupgradeneeded = (e) => {
+          e.target.result.createObjectStore('appState');
+        };
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e);
+      });
+    }
+
+    async function saveToIDB(payload) {
+      try {
+        const idb = await openLocalIDB();
+        const tx = idb.transaction('appState', 'readwrite');
+        tx.objectStore('appState').put(payload, 'main_store');
+      } catch (e) {}
+    }
+
+    async function loadFromIDB() {
+      try {
+        const idb = await openLocalIDB();
+        return await new Promise((resolve) => {
+          const tx = idb.transaction('appState', 'readonly');
+          const req = tx.objectStore('appState').get('main_store');
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => resolve(null);
+        });
+      } catch (e) {
+        return null;
+      }
+    }
+
+    window.savePersistentData = async function() {
+      const payload = {
+        employeesJson: JSON.stringify(window.employees),
+        requestsJson: JSON.stringify(window.requests),
+        updatedAt: Date.now()
+      };
+
+      await saveToIDB(payload);
+
+      if (db && currentUser) {
+        try {
+          const storeDoc = doc(db, 'artifacts', appId, 'public', 'data', 'security_leaves_store', 'main');
+          await setDoc(storeDoc, payload);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      window.populateDropdowns();
+    };
+
+    async function initStorage() {
+      const cached = await loadFromIDB();
+      if (cached && cached.employeesJson && cached.requestsJson) {
+        try {
+          window.employees = JSON.parse(cached.employeesJson);
+          window.requests = JSON.parse(cached.requestsJson);
+          window.populateDropdowns();
+          window.renderEmployeeRequests();
+          window.renderAccRequests();
+          window.renderEmployeesTable();
+        } catch (e) {}
+      }
+
+      if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+        try {
+          const firebaseConfig = JSON.parse(__firebase_config);
+          const app = initializeApp(firebaseConfig);
+          auth = getAuth(app);
+          db = getFirestore(app);
+
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            const cred = await signInWithCustomToken(auth, __initial_auth_token);
+            currentUser = cred.user;
+          } else {
+            const cred = await signInAnonymously(auth);
+            currentUser = cred.user;
+          }
+
+          if (!currentUser) return;
+
+          const storeDoc = doc(db, 'artifacts', appId, 'public', 'data', 'security_leaves_store', 'main');
+          onSnapshot(storeDoc, (snap) => {
+            if (snap.exists()) {
+              const data = snap.data();
+              if (data.employeesJson && data.requestsJson) {
+                window.employees = JSON.parse(data.employeesJson);
+                window.requests = JSON.parse(data.requestsJson);
+                saveToIDB(data);
+                window.populateDropdowns();
+                window.renderEmployeeRequests();
+                window.renderAccRequests();
+                window.renderEmployeesTable();
+              }
+            } else {
+              window.savePersistentData();
+            }
+          }, (error) => {
+            console.error(error);
+          });
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    }
+
+    initStorage();
+  </script>
+
+  <script>
+    function showToast(msg) {
+      const box = document.getElementById('toastBox');
+      document.getElementById('toastText').innerText = msg;
+      box.classList.remove('hidden');
+      setTimeout(() => box.classList.add('hidden'), 4000);
+    }
+    function hideToast() { document.getElementById('toastBox').classList.add('hidden'); }
+
+    function saveData() {
+      if (typeof window.savePersistentData === 'function') {
+        window.savePersistentData();
+      } else {
+        populateDropdowns();
+      }
+    }
+
+    document.getElementById('formStartDate').value = todayStr;
+    document.getElementById('formEndDate').value = todayStr;
+
+    function getUsedDays(empCode, empName) {
+      return window.requests
+        .filter(r => (r.empCode === empCode || r.name === empName) && r.status === 'مقبول' && (r.type === 'اعتيادية' || r.type === 'عارضة'))
+        .reduce((sum, r) => sum + (Number(r.days) || 1), 0);
+    }
+
+    function populateDropdowns() {
+      const empSelect = document.getElementById('empQuickSelect');
+      const currentVal = empSelect.value;
+      empSelect.innerHTML = `<option value="">-- أو اختر الاسم من الكشف (${window.employees.length} فرد) --</option>` +
+        window.employees.map(e => `<option value="${e.code}">${e.code} - ${e.name}</option>`).join('');
+      empSelect.value = currentVal;
+    }
+
+    function lookupEmployee(codeVal) {
+      const cleanCode = String(codeVal).trim();
+      document.getElementById('empSearchCode').value = cleanCode;
+      const emp = window.employees.find(e => e.code === cleanCode);
+      const banner = document.getElementById('empProfileBanner');
+
+      if (emp) {
+        const used = getUsedDays(emp.code, emp.name);
+        const rem = Math.max(0, emp.totalBalance - used);
+
+        banner.classList.remove('hidden');
+        document.getElementById('cardEmpName').innerText = emp.name;
+        document.getElementById('cardEmpShift').innerText = emp.shift || 'وردية ليلية';
+        document.getElementById('cardTotalBalance').innerText = emp.totalBalance + ' يوم';
+        document.getElementById('cardUsedBalance').innerText = used + ' يوم';
+        document.getElementById('cardRemBalance').innerText = rem + ' يوم';
+
+        document.getElementById('formEmpName').value = emp.name;
+      } else {
+        banner.classList.add('hidden');
+      }
+      renderEmployeeRequests();
+    }
+
+    function calculateDaysAndCheck() {
+      const s = new Date(document.getElementById('formStartDate').value);
+      const e = new Date(document.getElementById('formEndDate').value);
+      let diff = Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1;
+      if (isNaN(diff) || diff < 1) diff = 1;
+      
+      const isUpper = document.getElementById('formIsUpperEgypt').value;
+      const maxAllowed = isUpper === 'yes' ? 7 : 5;
+
+      document.getElementById('formDaysCount').value = diff + ' أيام';
+
+      const alertBox = document.getElementById('liveConflictAlert');
+      if (diff > maxAllowed) {
+        alertBox.classList.remove('hidden');
+        document.getElementById('liveConflictText').innerText = `تنبيه: الحد الأقصى المسموح به هو ${maxAllowed} أيام فقط (${isUpper === 'yes' ? 'لمحافظات الصعيد' : 'للإجازة العادية'})!`;
+      } else {
+        alertBox.classList.add('hidden');
+      }
+    }
+
+    function checkOverlap(startA, endA, startB, endB) {
+      return startA <= endB && endA >= startB;
+    }
+
+    function handleLeaveSubmit(e) {
+      e.preventDefault();
+      const s = new Date(document.getElementById('formStartDate').value);
+      const end = new Date(document.getElementById('formEndDate').value);
+      const days = Math.max(1, Math.round((end - s) / (1000 * 60 * 60 * 24)) + 1);
+      const isUpper = document.getElementById('formIsUpperEgypt').value;
+      const maxAllowed = isUpper === 'yes' ? 7 : 5;
+
+      if (days > maxAllowed) {
+        showToast(`❌ لا يمكن إرسال الطلب: الحد الأقصى هو ${maxAllowed} أيام فقط!`);
+        return;
+      }
+
+      const newReq = {
+        id: Math.floor(1000 + Math.random() * 9000),
+        empCode: document.getElementById('empSearchCode').value.trim() || 'غير مسجل',
+        name: document.getElementById('formEmpName').value.trim(),
+        type: document.getElementById('formLeaveType').value,
+        startDate: document.getElementById('formStartDate').value,
+        endDate: document.getElementById('formEndDate').value,
+        days: days,
+        isUpper: isUpper,
+        phone: document.getElementById('formPhone').value.trim(),
+        notes: document.getElementById('formNotes').value.trim() || '-',
+        status: 'معلق',
+        accNote: '',
+        createdAt: new Date().toLocaleDateString('ar-EG')
+      };
+
+      window.requests.unshift(newReq);
+      saveData();
+      renderEmployeeRequests();
+      lookupEmployee(newReq.empCode);
+      showToast('✅ تم تسجيل وحفظ طلب الإجازة بنجاح!');
+    }
+
+    function sendRequestWhatsAppToAcc(reqId) {
+      const r = window.requests.find(x => x.id === reqId);
+      if (!r) return;
+      const syncPayload = btoa(encodeURIComponent(JSON.stringify(r)));
+      const msg =
+        `🛡️ *طلب إجازة جديد - مشروع دي باي*\n` +
+        `👤 *الاسم:* ${r.name} (كود: ${r.empCode})\n` +
+        `📌 *النوع:* ${r.type} (${r.days} يوم)\n` +
+        `📅 *من:* ${r.startDate} *إلى:* ${r.endDate}\n` +
+        `🌴 *من الصعيد:* ${r.isUpper === 'yes' ? 'نعم (حد أقصى 7 أيام)' : 'لا (حد أقصى 5 أيام)'}\n` +
+        `📲 *كود الإضافة السريعة للمحاسب:*\nSYNC:${syncPayload}`;
+
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    function renderEmployeeRequests() {
+      const codeFilter = document.getElementById('empSearchCode').value.trim();
+      const container = document.getElementById('empRequestsContainer');
+
+      const list = codeFilter
+        ? window.requests.filter(r => r.empCode === codeFilter || r.name.includes(codeFilter))
+        : window.requests;
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="text-center py-8 text-xs text-slate-400 font-bold">لا توجد طلبات مسجلة حالياً.</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(r => {
+        let badge = '';
+        if (r.status === 'معلق') badge = `<span class="bg-amber-100 text-amber-800 text-xs font-extrabold px-3 py-1 rounded-full">⏳ قيد مراجعة المحاسب</span>`;
+        else if (r.status === 'مقبول') badge = `<span class="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-3 py-1 rounded-full">✅ تمت الموافقة</span>`;
+        else badge = `<span class="bg-rose-100 text-rose-800 text-xs font-extrabold px-3 py-1 rounded-full">❌ مرفوض</span>`;
+
+        return `
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+            <div class="space-y-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-mono bg-slate-200 text-slate-700 px-2 py-0.5 rounded">#${r.id}</span>
+                <span class="text-xs bg-blue-100 text-blue-800 font-bold px-2.5 py-0.5 rounded-full">كود: ${r.empCode}</span>
+                <h4 class="font-black text-sm text-slate-900">${r.name}</h4>
+              </div>
+              <p class="text-xs text-slate-600 font-semibold">
+                النوع: <b class="text-slate-900">${r.type}</b> (${r.days} يوم) | من <b class="text-blue-700">${r.startDate}</b> إلى <b class="text-blue-700">${r.endDate}</b>
+              </p>
+              ${r.accNote ? `<p class="text-xs font-extrabold ${r.status === 'مقبول' ? 'text-emerald-700' : 'text-rose-600'} mt-1">💬 قرار المحاسب: ${r.accNote}</p>` : ''}
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
+              ${badge}
+              <button onclick="sendRequestWhatsAppToAcc(${r.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition">
+                📲 إرسال واتساب
+              </button>
+              ${r.status === 'مقبول' ? `
+                <button onclick="showPermitModal(${r.id})" class="bg-slate-900 hover:bg-black text-white text-xs font-bold px-3 py-1.5 rounded-xl transition">
+                  🪪 التصريح
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function switchRole(role) {
+      const empV = document.getElementById('employeeView');
+      const accV = document.getElementById('accountantView');
+      const btnE = document.getElementById('mainTabEmp');
+      const btnA = document.getElementById('mainTabAcc');
+
+      if (role === 'employee') {
+        empV.classList.remove('hidden');
+        accV.classList.add('hidden');
+        btnE.classList.add('tab-active');
+        btnA.classList.remove('tab-active');
+        renderEmployeeRequests();
+      } else {
+        empV.classList.add('hidden');
+        accV.classList.remove('hidden');
+        btnA.classList.add('tab-active');
+        btnE.classList.remove('tab-active');
+        renderAccRequests();
+        renderEmployeesTable();
+      }
+    }
+
+    function verifyAccountantPin(e) {
+      e.preventDefault();
+      const inputEl = document.getElementById('accPinInput');
+      const pin = inputEl.value.trim();
+      if (pin === '123321') {
+        document.getElementById('accLoginBox').classList.add('hidden');
+        document.getElementById('accDashboard').classList.remove('hidden');
+        inputEl.value = '';
+        renderAccRequests();
+        renderEmployeesTable();
+      } else {
+        // تفريغ الحقل بصمت تام بدون أي رسالة تصحيح أو تلميح للباسوورد
+        inputEl.value = '';
+      }
+    }
+
+    function lockAccountantPanel() {
+      document.getElementById('accDashboard').classList.add('hidden');
+      document.getElementById('accLoginBox').classList.remove('hidden');
+      document.getElementById('accPinInput').value = '';
+    }
+
+    function switchAccSubTab(tab) {
+      document.getElementById('accSubRequests').classList.add('hidden');
+      document.getElementById('accSubEmployees').classList.add('hidden');
+      document.getElementById('accSubSettings').classList.add('hidden');
+
+      ['subTabReq', 'subTabEmp', 'subTabSet'].forEach(id => {
+        document.getElementById(id).className = "px-3.5 py-2 rounded-xl text-xs font-extrabold bg-slate-100 text-slate-700 hover:bg-slate-200 transition";
+      });
+
+      if (tab === 'requests') {
+        document.getElementById('accSubRequests').classList.remove('hidden');
+        document.getElementById('subTabReq').className = "px-3.5 py-2 rounded-xl text-xs font-extrabold bg-blue-600 text-white transition";
+        renderAccRequests();
+      } else if (tab === 'employees') {
+        document.getElementById('accSubEmployees').classList.remove('hidden');
+        document.getElementById('subTabEmp').className = "px-3.5 py-2 rounded-xl text-xs font-extrabold bg-blue-600 text-white transition";
+        renderEmployeesTable();
+      } else {
+        document.getElementById('accSubSettings').classList.remove('hidden');
+        document.getElementById('subTabSet').className = "px-3.5 py-2 rounded-xl text-xs font-extrabold bg-blue-600 text-white transition";
+      }
+    }
+
+    function renderAccRequests() {
+      document.getElementById('statAll').innerText = window.requests.length;
+      document.getElementById('statPending').innerText = window.requests.filter(r => r.status === 'معلق').length;
+      document.getElementById('statApproved').innerText = window.requests.filter(r => r.status === 'مقبول').length;
+      document.getElementById('statRejected').innerText = window.requests.filter(r => r.status === 'مرفوض').length;
+      document.getElementById('statActiveToday').innerText = window.requests.filter(r =>
+        r.status === 'مقبول' && checkOverlap(todayStr, todayStr, r.startDate, r.endDate)
+      ).length;
+
+      const search = document.getElementById('filterSearch').value.trim().toLowerCase();
+      const statusF = document.getElementById('filterStatus').value;
+
+      const filtered = window.requests.filter(r => {
+        const matchS = r.name.toLowerCase().includes(search) || (r.empCode && r.empCode.includes(search));
+        const matchStatus = statusF === 'ALL' || r.status === statusF;
+        return matchS && matchStatus;
+      });
+
+      const container = document.getElementById('accRequestsList');
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="bg-white p-8 rounded-2xl text-center text-xs text-slate-400 font-bold border">لا توجد طلبات مطابقة للبحث.</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(r => {
+        const empObj = window.employees.find(e => e.code === r.empCode || e.name === r.name);
+        const totalBal = empObj ? empObj.totalBalance : 21;
+        const usedBal = getUsedDays(r.empCode, r.name);
+        const remBal = Math.max(0, totalBal - usedBal);
+
+        return `
+          <div class="bg-white rounded-2xl p-4 md:p-5 border-2 border-slate-200 card-shadow space-y-3">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div class="space-y-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="bg-slate-900 text-white text-xs font-extrabold px-2.5 py-0.5 rounded-md">كود: ${r.empCode}</span>
+                  <h4 class="text-base font-black text-slate-900">${r.name}</h4>
+                  <span class="bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                    الرصيد المتبقي: ${remBal} يوم
+                  </span>
+                </div>
+
+                <p class="text-xs text-slate-700 font-bold pt-1">
+                  📌 <span class="text-blue-700">${r.type}</span> — المدة: <b>${r.days} يوم</b> (${r.isUpper === 'yes' ? 'من الصعيد - حد أقصى 7 أيام' : 'عادي - حد أقصى 5 أيام'}) من <span class="underline">${r.startDate}</span> إلى <span class="underline">${r.endDate}</span>
+                </p>
+                <p class="text-xs text-slate-500 font-semibold">
+                  📞 الهاتف: ${r.phone || 'غير مسجل'} | 📝 السبب: ${r.notes}
+                </p>
+                ${r.accNote ? `<p class="text-xs font-black text-blue-900 bg-slate-100 p-2 rounded-lg mt-1">قرار الإدارة: ${r.accNote}</p>` : ''}
+              </div>
+
+              <div class="flex flex-col items-end gap-2 w-full md:w-auto">
+                <div class="flex flex-wrap gap-1.5 w-full md:w-auto justify-end">
+                  <button onclick="decideRequest(${r.id}, 'مقبول', 'تمت الموافقة وخصم المدة')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-3.5 py-2 rounded-xl shadow transition">✅ موافقة</button>
+                  <button onclick="decideRequest(${r.id}, 'مرفوض', 'غير موافق عليه حالياً')" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-black px-3.5 py-2 rounded-xl shadow transition">❌ رفض</button>
+                  <button onclick="deleteRequest(${r.id})" class="bg-slate-100 text-rose-600 text-xs font-bold px-2.5 py-2 rounded-xl">🗑️</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function decideRequest(id, status, note) {
+      const req = window.requests.find(r => r.id === id);
+      if (!req) return;
+      req.status = status;
+      req.accNote = note;
+      saveData();
+      renderAccRequests();
+      renderEmployeesTable();
+      showToast(status === 'مقبول' ? '✅ تم اعتماد الإجازة وحفظها' : '❌ تم رفض الطلب وحفظ القرار');
+    }
+
+    function deleteRequest(id) {
+      window.requests = window.requests.filter(r => r.id !== id);
+      saveData();
+      renderAccRequests();
+      showToast('🗑️ تم حذف الطلب');
+    }
+
+    function renderEmployeesTable() {
+      const tbody = document.getElementById('employeesTableBody');
+      tbody.innerHTML = window.employees.map((e, idx) => {
+        const used = getUsedDays(e.code, e.name);
+        const rem = Math.max(0, e.totalBalance - used);
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="p-3 font-mono font-black text-blue-700">${e.code}</td>
+            <td class="p-3 text-slate-900 font-bold">${e.name}</td>
+            <td class="p-3 text-center">${e.totalBalance}</td>
+            <td class="p-3 text-center text-amber-700">${used}</td>
+            <td class="p-3 text-center font-black ${rem <= 3 ? 'text-rose-600' : 'text-emerald-700'}">${rem} يوم</td>
+            <td class="p-3 text-center">
+              <button onclick="removeEmployee(${idx})" class="text-rose-600 hover:underline text-xs font-bold">حذف</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function addNewEmployee(e) {
+      e.preventDefault();
+      const code = document.getElementById('newEmpCode').value.trim();
+      if (window.employees.some(emp => emp.code === code)) {
+        showToast('⚠️ هذا الكود مسجل بالفعل!');
+        return;
+      }
+      window.employees.push({
+        code: code,
+        name: document.getElementById('newEmpName').value.trim(),
+        shift: 'وردية ليلية',
+        totalBalance: Number(document.getElementById('newEmpBalance').value) || 21
+      });
+      saveData();
+      renderEmployeesTable();
+      e.target.reset();
+      showToast('✅ تمت إضافة الموظف وحفظه بنجاح');
+    }
+
+    function removeEmployee(index) {
+      window.employees.splice(index, 1);
+      saveData();
+      renderEmployeesTable();
+      showToast('🗑️ تم حذف الموظف');
+    }
+
+    function openSmartImportModal() {
+      document.getElementById('importCodeInput').value = '';
+      document.getElementById('importModal').classList.remove('hidden');
+    }
+
+    function processSmartImport() {
+      const raw = document.getElementById('importCodeInput').value.trim();
+      const match = raw.match(/SYNC:([A-Za-z0-9+/=]+)/);
+      if (!match) {
+        showToast('❌ لم يتم العثور على كود الطلب الذكي (SYNC)!');
+        return;
+      }
+      try {
+        const obj = JSON.parse(decodeURIComponent(atob(match[1])));
+        if (!window.requests.some(r => r.id === obj.id)) {
+          window.requests.unshift(obj);
+          saveData();
+        }
+        renderAccRequests();
+        document.getElementById('importModal').classList.add('hidden');
+        showToast('✅ تم استيراد وحفظ طلب (' + obj.name + ') بنجاح!');
+      } catch (err) {
+        showToast('❌ الكود تالف.');
+      }
+    }
+
+    function showPermitModal(id) {
+      const r = window.requests.find(x => x.id === id);
+      if (!r) return;
+      document.getElementById('permitIdBadge').innerText = '#' + r.id;
+      document.getElementById('pName').innerText = r.name;
+      document.getElementById('pCode').innerText = `كود: ${r.empCode}`;
+      document.getElementById('pType').innerText = r.type;
+      document.getElementById('pDates').innerText = `${r.days} يوم (من ${r.startDate} إلى ${r.endDate})`;
+      document.getElementById('pNote').innerText = r.accNote || 'معتمد';
+      document.getElementById('permitModal').classList.remove('hidden');
+    }
+
+    function downloadPermitImage() {
+      html2canvas(document.getElementById('printablePermit'), { scale: 2 }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `تصريح_اجازة_${Date.now()}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+    }
+
+    function exportRealExcel() {
+      if (window.requests.length === 0) {
+        showToast('⚠️ لا توجد بيانات!');
+        return;
+      }
+      const rows = window.requests.map(r => ({
+        "رقم الطلب": r.id,
+        "كود الموظف": r.empCode,
+        "اسم فرد الأمن": r.name,
+        "نوع الإجازة": r.type,
+        "من تاريخ": r.startDate,
+        "إلى تاريخ": r.endDate,
+        "عدد الأيام": r.days,
+        "من الصعيد": r.isUpper === 'yes' ? 'نعم (7 أيام)' : 'لا (5 أيام)',
+        "الحالة": r.status,
+        "قرار المحاسب": r.accNote
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "الإجازات");
+      XLSX.writeFile(wb, `تقرير_اجازات_${todayStr}.xlsx`);
+      showToast('📊 تم تحميل شيت الإكسيل');
+    }
+
+    function exportBackupTxt() {
+      const backup = JSON.stringify({ employees: window.employees, requests: window.requests }, null, 2);
+      const blob = new Blob([backup], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `backup_${todayStr}.txt`;
+      a.click();
+    }
+
+    function importBackupTxt(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const data = JSON.parse(evt.target.result);
+          if (data.employees && data.requests) {
+            window.employees = data.employees;
+            window.requests = data.requests;
+            saveData();
+            renderAccRequests();
+            renderEmployeesTable();
+            showToast('✅ تمت الاستعادة والحفظ بنجاح!');
+          }
+        } catch (err) { showToast('❌ ملف غير صالح!'); }
+      };
+      reader.readAsText(file);
+    }
+
+    function resetDemoData() {
+      window.employees = [...DEFAULT_EMPLOYEES];
+      window.requests = [...DEFAULT_REQUESTS];
+      saveData();
+      renderEmployeeRequests();
+      renderAccRequests();
+      renderEmployeesTable();
+      showToast('🔄 تمت استعادة الكشف الأصلي');
+    }
+
+    function downloadAppFile(ext) {
+      // تضمين أحدث البيانات المحفوظة داخل كود الملف قبل تنزيله لضمان حفظها دائماً
+      const initScript = document.getElementById('initialDataScript');
+      if (initScript) {
+        initScript.textContent = `
+    const DEFAULT_EMPLOYEES = ${JSON.stringify(window.employees, null, 2)};
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const DEFAULT_REQUESTS = ${JSON.stringify(window.requests, null, 2)};
+    window.employees = [...DEFAULT_EMPLOYEES];
+    window.requests = [...DEFAULT_REQUESTS];
+        `;
+      }
+      const fullHtml = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+      const blob = new Blob([fullHtml], { type: ext === 'txt' ? 'text/plain;charset=utf-8' : 'text/html;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `منظومة_اجازات_الامن.${ext}`;
+      a.click();
+      showToast('⬇️ جاري تنزيل الملف بكافة البيانات المحفوظة...');
+    }
+
+    populateDropdowns();
+    renderEmployeeRequests();
+  </script>
+</body>
+</html>
